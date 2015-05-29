@@ -23,7 +23,7 @@ function FoodANT_UM(varargin)
 %FoodANT.data.avg_rt: Average reaction time per block.
 %FoodANT.data.info: Basic info of subject, session, condition, etc.
 
-global KEY COLORS w wRect XCENTER YCENTER PICS STIM FoodANT trial
+% global KEY COLORS w wRect XCENTER YCENTER PICS STIM FoodANT trial
 
 prompt={'SUBJECT ID' 'Order Condition (1 or 2)' 'Session (1, 2, 3, or 4)'}; % 'Practice? 0 or 1'};
 defAns={'4444' '1' '1'}; % '1'};
@@ -51,8 +51,6 @@ d = clock;
 
 KEY = struct;
 KEY.rt = KbName('SPACE');
-KEY.left = KbName('c');
-KEY.right = KbName('m');
 
 
 COLORS = struct;
@@ -72,6 +70,7 @@ STIM.notrials = 12;     %Across two blocks, not total
 STIM.totes = STIM.blocks*STIM.trials;
 STIM.totes_go = STIM.totes/2;
 STIM.trialdur = 1;
+STIM.rest = 45;         %How much "rest time" between blocks.
 
 %% Find & load in pics
 %find the image directory by figuring out where the .m is kept
@@ -147,7 +146,7 @@ for g = 1:STIM.blocks;
             if shuffled(ttt) == 1;
                 %this is an Unhealthy - go trial
                 FoodANT.data(row).pic_num = piclist_UnH(UnHpic);
-                FoodANT.data(row).pic_name = PICS.in.Unhealthy(UnHpic).name;                
+                FoodANT.data(row).pic_name = PICS.in.Unhealthy(piclist_UnH(UnHpic)).name;                
                 UnHpic = UnHpic + 1;
             else
                 %this is a Healthy - nogo trial
@@ -208,9 +207,23 @@ end
 %colors), winRect will either be a 1024x768 box, or the whole screen. The
 %function returns a window "w", and a rect that represents the whole
 %screen. 
-[w, wRect]=Screen('OpenWindow', screenNumber, 0,winRect,32,2);
+[w, ~]=Screen('OpenWindow', screenNumber, 0,winRect,32,2);
 
-%%
+%% Sound stuff.
+wave=sin(1:0.25:500);
+freq=8000;  % change this to change freq of tone
+nrchannels = size(wave,1);
+% Default to auto-selected default output device:
+deviceid = -1;
+% Request latency mode 2, which used to be the best one in our measurement:
+reqlatencyclass = 2; % class 2 empirically the best, 3 & 4 == 2
+% Initialize driver, request low-latency preinit:
+InitializePsychSound(1);
+% Open audio device for low-latency output:
+pahandle = PsychPortAudio('Open', deviceid, [], reqlatencyclass, freq, nrchannels);
+PsychPortAudio('FillBuffer', pahandle, wave);
+
+%% Font Stuff
 %you can set the font sizes and styles here
 Screen('TextFont', w, 'Arial');
 %Screen('TextStyle', w, 1);
@@ -223,6 +236,7 @@ STIM.imgrect = [XCENTER-300; YCENTER-225; XCENTER+300; YCENTER+225];
 
 
 %% Initial screen
+PsychPortAudio('Start', pahandle, 1);
 DrawFormattedText(w,'Welcome to the reaction time task.\nPress any key to continue.','center','center',COLORS.WHITE,50,[],[],1.5);
 Screen('Flip',w);
 KbWait();
@@ -230,12 +244,12 @@ Screen('Flip',w);
 WaitSecs(1);
 
 %% Instructions
-instruct = 'In this task, we will show you a series of images of foods. We want you to press the space bar as fast & accurately as you can when you see certain types of images. \nBefore each round of trials we will tell what your target images are.'; %sprintf('In this task, we are going to show you a series of images. ',KbName(KEY.left),KbName(KEY.right));
-DrawFormattedText(w,instruct,'center','center',COLORS.WHITE,50,[],[],1.5);
+instruct = 'In this task, we will show you a series of images of food. We want you to press the space bar as quickly & accurately as you can when you see certain types of foods -- either healthy or unhealthy. \n\nBefore each round we will tell you whether to press the space bar for healthy or unhealthy foods.\n\nPress any key to continue.'; %sprintf('In this task, we are going to show you a series of images. ',KbName(KEY.left),KbName(KEY.right));
+DrawFormattedText(w,instruct,'center','center',COLORS.WHITE,75,[],[],1.5);
 Screen('Flip',w);
 KbWait();
 
-%% Task
+%% Blocks & Trials of the Task
 DrawFormattedText(w,'The task is about to begin.\n\n\nPress any key to begin the task.','center','center',COLORS.WHITE,60,[],[],1.5);
 Screen('Flip',w);
 KbWait([],3);
@@ -253,12 +267,12 @@ for block = 1:STIM.blocks;
         nogo_word = 'HEALTHY';
     end
     
-    ibt = sprintf('Prepare for Round %d. \n\nIn this round, press the space bar when you see pictures of %s foods. If you see %s foods do not press the button. \n\nPress any key when you are ready to begin.',block,go_word,nogo_word);
-    DrawFormattedText(w,ibt,'center','center',COLORS.WHITE);
+    ibt = sprintf('Prepare for Round %d. \n\nIn this round, press the space bar when you see pictures of %s foods. \n\nIf you see %s foods do not press the button. \n\nPress any key when you are ready to begin.',block,go_word,nogo_word);
+    DrawFormattedText(w,ibt,'center','center',COLORS.WHITE,80,[],[],1.5);
     Screen('Flip',w);
     KbWait();
     
-    old = Screen('TextSize',w,80);
+    old = Screen('TextSize',w,180);
     for trial = 1:STIM.trials;
         %Figure out which row to grab var/put data...
         tnum = (block-1)*STIM.trials + trial;
@@ -280,7 +294,7 @@ for block = 1:STIM.blocks;
         while telap <= (STIM.trialdur);
             telap = GetSecs() - RT_start;
             [Down, ~, Code] = KbCheck();            %wait for key to be pressed
-            if (Down == 1 && any(find(Code) == corr_respkey))
+            if (Down == 1 && any(find(Code) == KEY.rt))
                 FoodANT.data(tnum).rt = GetSecs() - RT_start;
                 
                 if FoodANT.data(tnum).trial_type == 0
@@ -328,14 +342,30 @@ for block = 1:STIM.blocks;
     end
     
     Screen('TextSize',w,old);
-    DrawFormattedText(w,'That concludes this round of trials.','center','center',COLORS.WHITE);
-    Screen('Flip',w);   %clear screen first.
-    WaitSecs(3);
+    
+    if block < STIM.blocks
+        postbloc_text = sprintf('REST. \n\nThe next round will begin in %d seconds.',STIM.rest);
+        DrawFormattedText(w,postbloc_text,'center','center',COLORS.WHITE);
+        Screen('Flip',w);
+        
+        for elap = 1:STIM.rest
+        
+            if rem(elap,5) == 0
+                countd = STIM.rest - elap;
+                postbloc_text = sprintf('REST. \n\nThe next round will begin in %d seconds.',countd);
+                DrawFormattedText(w,postbloc_text,'center','center',COLORS.WHITE);
+                Screen('Flip',w);   %clear screen first.
+            end
+            WaitSecs(1);
+        end
+        PsychPortAudio('Start', pahandle, 1);
+    end
     
 end
 
 DrawFormattedText(w,'That concludes this task. Please let the experimenter know you are finished.','center','center',COLORS.WHITE);
-WaitSecs(6);
+Screen('Flip',w);
+
 
 %% Save all the data
 
@@ -356,31 +386,36 @@ catch
     end
 end
 
-save_name = sprintf('FoodANT_%03d_%d.txt',ID,SESS);
+save_name = sprintf('FoodANT_%03d_%d',ID,SESS);
+save_name_txt = [save_name '.txt'];
 
-if exist(save_name,'file') == 2
+if exist(save_name_txt,'file') == 2
     save_name = sprintf('FoodANT_%03d_%d_%s_%2.0f%02.0f',ID,SESS,date,d(4),d(5));
 end
 
+
 try
-fid = fopen(save_name,'a');
+fid = fopen(save_name_txt,'a');
 fprintf(fid,'ID: %d\nCond: %d\nSession: %d\nDate & Time: %s\n',FoodANT.info.ID,FoodANT.info.cond,FoodANT.info.session,FoodANT.info.date);
 
 %Save Tab-delim Text File
 WriteStructsToText(fid,FoodANT.data);
 
 %Save the raw structure as a .mat
-save(['FoodANT_' num2str(ID) '_' num2str(SESS) '.mat'],'FoodANT');
+save([save_name '.mat'],'FoodANT');
 
 catch
-    warning('There may have been a problem saving the file. Check that the subject file was saved.')
+    save_name_ins = [save_name '-err.mat'];
+    warning('There may have been a problem saving the file. Check that the subject file was saved. As an insurance policy, the entirey of the workspace has now been saved as %s in %s.',save_name_ins,pwd);
+    save(save_name_ins);
 end
 
 fclose(fid);
 
 % DrawFormattedText(w,'Thank you for participating\n in this part of the study!','center','center',COLORS.WHITE);
+WaitSecs(5);
 Screen('Flip', w);
-KbWait();
+
 
 sca
 
