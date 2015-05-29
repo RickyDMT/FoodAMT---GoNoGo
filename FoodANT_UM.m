@@ -4,7 +4,7 @@ function FoodANT_UM(varargin)
 % 
 %All variables and data are saved to a structure called FoodANT_###_#.mat and/or a similarly named text file.
 % 
-% Variables:
+% Variables & Data:
 % FoodANT.data.SubjID:      Subject ID
 % FoodANT.data.Block:       Block Number
 % FoodANT.data.Trial:       Trial Number
@@ -18,9 +18,12 @@ function FoodANT_UM(varargin)
 %                           Note that this does not distinguish Go from NoGo, only if whatever happened was correct or not.
 % 
 % FoodANT.info:             Basic info of subject, session, condition, etc.
+% 
+% Notes:
+% 1. Task beeps at start-up to allow you to adjust your speakers.
 
 
-prompt={'SUBJECT ID' 'Order Condition (1 or 2)' 'Session (1, 2, 3, or 4)'}; % 'Practice? 0 or 1'};
+prompt={'SUBJECT ID' 'Order Condition (1 = H-Go first; 2 = UnH-Go first)' 'Session Number'}; % 'Practice? 0 or 1'};
 defAns={'4444' '1' '1'}; % '1'};
 
 answer=inputdlg(prompt,'Please input subject info',1,defAns);
@@ -59,9 +62,9 @@ COLORS.rect = COLORS.WHITE;
 
 STIM = struct;
 STIM.blocks = 4;
-STIM.trials = 48;
-STIM.gotrials = 36;     %Across two blocks, not total
-STIM.notrials = 12;     %Across two blocks, not total
+STIM.trials = 96;
+STIM.gotrials = 74;     %Across one run, not total
+STIM.notrials = 24;     %Across one run, not total
 STIM.totes = STIM.blocks*STIM.trials;
 STIM.totes_go = STIM.totes/2;
 STIM.trialdur = 1;
@@ -107,8 +110,9 @@ ordercond = [1 1 0 0; 0 0 1 1]; %1 = Healthy is go; 0 = Unhealthy is go
 trial_types = [ones(STIM.gotrials,1); zeros(STIM.notrials,1)];  %1 = go; 0 = no.  Block type determines whether go = healthy, etc.
 
 %Make long list of #s to represent each pic; randomly ordered.
-piclist_H = randperm(length(PICS.in.Healthy)); 
-piclist_UnH = randperm(length(PICS.in.Unhealthy));
+% Note: This creates an extra long list, just to be safe.
+piclist_H = [randperm(length(PICS.in.Healthy)) randperm(length(PICS.in.Healthy))]; 
+piclist_UnH = [randperm(length(PICS.in.Unhealthy)) randperm(length(PICS.in.Unhealthy))];
 
 FoodANT.data = struct('SubjID',[],'Block',[],'Trial',[],'block_type',[],'trial_type',[],'pic_num',[],'pic_name',[],'rt',[],'correct',[]);
 
