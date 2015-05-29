@@ -1,29 +1,24 @@
 function FoodANT_UM(varargin)
 %Food-based Go/NoGo task, developed for Psychtoolbox by ELK (elk@uoregon.edu)
-% Code stored at github.come/rickyDMT
+% Get latest version at github.com/rickyDMT
 % 
-%All variables and data are saved to a structure called FoodANT_###.mat.
+%All variables and data are saved to a structure called FoodANT_###_#.mat and/or a similarly named text file.
 % 
-%Variables:
-%FoodANT.var.trial_type: Tells you what pic type was displayed; 1 = Go pic
-%(e.g., lo cal food); 2 = NoGo (high cal food); 3 = Neutral (water)
-%FoodANT.var.picnum:  Which pic from list was chosen.
-%FoodANT.var.GoNoGo:  1 = go trial, 0 = no-go trial
-%FoodANT.var.lr: What side was image presented on.  1 = left; 2 = right
+% Variables:
+% FoodANT.data.SubjID:      Subject ID
+% FoodANT.data.Block:       Block Number
+% FoodANT.data.Trial:       Trial Number
+% FoodANT.data.block_type:  1 = Healthy-Go block; 0 = Unhealthy-Go block
+% FoodANT.data.trial_type:  1 = Go trial; 0 = No Go trial -- Whether it is Healthy-Go or Unhealthy-Go is determined by "block_type"
+% FoodANT.data.pic_num:     Number to help the program find the image
+% FoodANT.data.pic_name:    Name of image that is displayed in that trial
+% FoodANT.data.rt:          Reaction time in seconds. Clock starts when image is presented and stops if/when space bar is pressed.
+%                           If space bar is not pressed, result is recorded as "NaN"
+% FoodANT.data.correct:     Designates if trial was correct. 1 = correct; 0 = incorrect
+%                           Note that this does not distinguish Go from NoGo, only if whatever happened was correct or not.
 % 
-%Data:
-%All trial-by-trial data are arranged such that each column represents a
-%block and each row represents a trial within that block.
-%FoodANT.data.rt: Reaction time. Initially all 0s. Correct & incorrect rts
-    %stored in seconds. If appropriate non-press, value = -999.
-%FoodANT.data.correct: Designates if trial was correct. initially -999 (and so,
-    %remains -999 if trials was not completed); 1 = correct; 0 = incorrect; 2 =
-    %trial was a Go trial, but wrong button was pressed (i.e., Left button when
-    %trial was a Right-side).
-%FoodANT.data.avg_rt: Average reaction time per block.
-%FoodANT.data.info: Basic info of subject, session, condition, etc.
+% FoodANT.info:             Basic info of subject, session, condition, etc.
 
-% global KEY COLORS w wRect XCENTER YCENTER PICS STIM FoodANT trial
 
 prompt={'SUBJECT ID' 'Order Condition (1 or 2)' 'Session (1, 2, 3, or 4)'}; % 'Practice? 0 or 1'};
 defAns={'4444' '1' '1'}; % '1'};
