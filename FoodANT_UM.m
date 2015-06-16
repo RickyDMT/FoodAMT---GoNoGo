@@ -23,15 +23,19 @@ function FoodANT_UM(varargin)
 % 1. Task beeps at start-up to allow you to adjust your speakers.
 
 
-prompt={'SUBJECT ID' 'Order Condition (1 = H-Go first; 2 = UnH-Go first)' 'Session Number'}; % 'Practice? 0 or 1'};
-defAns={'4444' '1' '1'}; % '1'};
+prompt={'SUBJECT ID' 'Session Number'}; % 'Order Condition (1 = H-Go first; 2 = UnH-Go first)' 'Practice? 0 or 1'};
+defAns={'4444' '1'}; % '1' '1'};
 
 answer=inputdlg(prompt,'Please input subject info',1,defAns);
 
 ID=str2double(answer{1});
-COND = str2double(answer{2});
-SESS = str2double(answer{3});
+% COND = str2double(answer{2});
+SESS = str2double(answer{2});
 % prac = str2double(answer{4});
+
+% Condition: Coinflip decides if participant is in
+% Condition 1 (Healthy is go) or Condtion 2 (Unhealthy is go)
+COND = CoinFlip(1,.5) + 1;
 
 %Make sure input data makes sense.
 % try
@@ -50,7 +54,6 @@ d = clock;
 KEY = struct;
 KEY.rt = KbName('SPACE');
 
-
 COLORS = struct;
 COLORS.BLACK = [0 0 0];
 COLORS.WHITE = [255 255 255];
@@ -63,7 +66,7 @@ COLORS.rect = COLORS.WHITE;
 STIM = struct;
 STIM.blocks = 4;
 STIM.trials = 96;
-STIM.gotrials = 74;     %Across one run, not total
+STIM.gotrials = 72;     %Across one run, not total
 STIM.notrials = 24;     %Across one run, not total
 STIM.totes = STIM.blocks*STIM.trials;
 STIM.totes_go = STIM.totes/2;
