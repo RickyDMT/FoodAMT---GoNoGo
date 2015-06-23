@@ -376,6 +376,7 @@ Screen('Flip',w);
 
 %Find the Results folder
 savedir = [mdir filesep 'Results' filesep];
+
 try
     cd(savedir)
 catch
@@ -384,25 +385,14 @@ catch
     try
         cd(savedir)
     catch
-        warning('Can''t find main directory for some reason. Now attemping to save the file at %s',pwd);
+        warning('Can''t find main directory for some reason. Now attemping to save the file in %s',pwd);
     end
 end
 
 save_name = sprintf('FoodANT_%03d_%d',ID,SESS);
-save_name_txt = [save_name '.txt'];
-
-if exist(save_name_txt,'file') == 2
-    save_name = sprintf('FoodANT_%03d_%d_%s_%2.0f%02.0f',ID,SESS,date,d(4),d(5));
-end
 
 
 try
-fid = fopen(save_name_txt,'a');
-fprintf(fid,'ID: %d\nCond: %d\nSession: %d\nDate & Time: %s\n',FoodANT.info.ID,FoodANT.info.cond,FoodANT.info.session,FoodANT.info.date);
-
-%Save Tab-delim Text File
-WriteStructsToText(fid,FoodANT.data);
-
 %Save the raw structure as a .mat
 save([save_name '.mat'],'FoodANT');
 
@@ -412,9 +402,6 @@ catch
     save(save_name_ins);
 end
 
-fclose(fid);
-
-% DrawFormattedText(w,'Thank you for participating\n in this part of the study!','center','center',COLORS.WHITE);
 WaitSecs(5);
 Screen('Flip', w);
 
