@@ -23,29 +23,19 @@ function FoodANT_UM(varargin)
 % 1. Task beeps at start-up to allow you to adjust your speakers.
 
 
-prompt={'SUBJECT ID' 'Session Number'}; % 'Order Condition (1 = H-Go first; 2 = UnH-Go first)' 'Practice? 0 or 1'};
-defAns={'4444' '1'}; % '1' '1'};
+prompt={'SUBJECT ID' 'Session Number' 'Practice?'}; % 'Order Condition (1 = H-Go first; 2 = UnH-Go first)' 'Practice? 0 or 1'};
+defAns={'4444' '1' '1'}; % '1' '1'};
 
 answer=inputdlg(prompt,'Please input subject info',1,defAns);
 
 ID=str2double(answer{1});
 % COND = str2double(answer{2});
 SESS = str2double(answer{2});
-% prac = str2double(answer{4});
+do_prac = str2double(answer{3});
 
 % Condition: Coinflip decides if participant is in
-% Condition 1 (Healthy is go) or Condtion 2 (Unhealthy is go)
+% Condition 1 (Healthy is go first) or Condtion 2 (Unhealthy is go first)
 COND = CoinFlip(1,.5) + 1;
-
-%Make sure input data makes sense.
-% try
-%     if SESS > 1;
-%         %Find subject data & make sure same condition.
-%         
-%     end
-% catch
-%     error('Subject ID & Condition code do not match.');
-% end
 
 rng_num = ID*SESS;
 rng(rng_num); %Seed random number generator with subject ID
@@ -72,6 +62,7 @@ STIM.totes = STIM.blocks*STIM.trials;
 STIM.totes_go = STIM.totes/2;
 STIM.trialdur = 1;
 STIM.rest = 45;         %How much "rest time" between blocks.
+STIM.pic_width = .75;   %Percentage of width of screen that the images will take up
 
 %% Find & load in pics
 %find the image directory by figuring out where the .m is kept
@@ -89,10 +80,17 @@ end
 
     PICS.in.Healthy = dir('Healthy*');
     PICS.in.Unhealthy = dir('Unhealthy*');
+    PICS.in.Prac_H = dir('Prac_H*');
+    PICS.in.Prac_U = dir('Prac_U*');
 
 %Check if pictures are present. If not, throw error.
 if isempty(PICS.in.Healthy) || isempty(PICS.in.Unhealthy)
-    error('Could not find pics. Please ensure pictures are found in a folder names IMAGES within the folder containing the .m task file.');
+    error('Could not find pics. Please ensure pictures are found in a folder named PICS within the same folder containing the .m task file.');
+end
+
+if isempty(PICS.in.Prac_H) || isempty(PICS.in.Prac_U) && do_prac == 1;
+    error('Could not find practice pics. Please ensure these pictures are found in the folder named PICS.');
+    %Do you want to continue without a practice session?
 end
 
 %% Fill in rest of pertinent info
@@ -209,7 +207,7 @@ end
 %colors), winRect will either be a 1024x768 box, or the whole screen. The
 %function returns a window "w", and a rect that represents the whole
 %screen. 
-[w, ~]=Screen('OpenWindow', screenNumber, 0,winRect,32,2);
+[w, wRect]=Screen('OpenWindow', screenNumber, 0,winRect,32,2);
 
 %% Sound stuff.
 wave=sin(1:0.25:500);
@@ -234,7 +232,12 @@ Screen('TextSize',w,30);
 KbName('UnifyKeyNames');
 
 %% Set Image Location
-STIM.imgrect = [XCENTER-300; YCENTER-225; XCENTER+300; YCENTER+225];
+x_size = (wRect(3)*STIM.pic_width);
+y_size = (x_size)*(450/600);
+
+
+STIM.imgrect = [XCENTER - x_size/2; YCENTER - y_size/2; XCENTER + x_size/2; YCENTER + y_size/2];
+% STIM.imgrect = [XCENTER-300; YCENTER-225; XCENTER+300; YCENTER+225];
 
 
 %% Initial screen
@@ -246,10 +249,115 @@ Screen('Flip',w);
 WaitSecs(1);
 
 %% Instructions
-instruct = 'In this task, we will show you a series of images of food. We want you to press the space bar as quickly & accurately as you can when you see certain types of foods -- either healthy or unhealthy. \n\nBefore each round we will tell you whether to press the space bar for healthy or unhealthy foods.\n\nPress any key to continue.'; %sprintf('In this task, we are going to show you a series of images. ',KbName(KEY.left),KbName(KEY.right));
+instruct = 'In this task, we will show you a series of images of food. We want you to press the space bar as quickly & accurately as you can when you see certain types of foods -- either fruits/vegetables or unhealthy foods. \n\nBefore each round we will tell you whether to press the space bar for fruits/vegetables or unhealthy foods.\n\nPress any key to continue.'; 
 DrawFormattedText(w,instruct,'center','center',COLORS.WHITE,75,[],[],1.5);
 Screen('Flip',w);
 KbWait();
+Screen('Flip',w);
+WaitSecs(.5);
+
+%% Practice
+if do_prac == 1
+    pp_rand = repmat([ones(5,1); zeros(5,1)],2,1);
+    pp_rand = [pp_rand [repmat((1:5)',2,1); repmat((6:10)',2,1)]];
+    pp_rand(1:10,:) = pp_rand(randperm(10),:);
+    xxxxxx = randperm(10) + 10;
+    pp_rand(11:20,:) = pp_rand(xxxxxx,:);
+    prac_imgs = cell(20,1);
+    for pracxx = 1:length(pp_rand);
+        if pp_rand(pracxx,1) == 1;
+            %Healthy pic
+            prac_imgs{pracxx} = PICS.in.Prac_H(pp_rand(pracxx,2)).name;
+        else
+            %Unhealthy pic
+            prac_imgs{pracxx} = PICS.in.Prac_U(pp_rand(pracxx,2)).name;
+        end
+    end
+    
+    pract = 0;
+    for prac_block = 1:2;
+        if prac_block == 1;
+            prac_text = 'First, let''s practice. \n\nPress the space bar when you see pictures of FRUITS/VEGETABLES. \n\nDo not press if you see a picture of an UNHEALTHY food.\n\nPress the space bar to begin the practice.';
+        else
+            prac_text = 'For the next practice rounds, press the space bar when you see pictures of UNHEALTHY foods. \n\nDo not press if you see a picture of a FRUIT/VEGETABLE.\n\nPress the space bar to begin the practice.';
+        end
+        DrawFormattedText(w,prac_text,'center','center',COLORS.WHITE,75,[],[],1.5);
+        Screen('Flip',w);
+        KbWait();
+        Screen('Flip',w);
+        WaitSecs(.5);
+        
+        old = Screen('TextSize',w,180);
+        for prac_trial = 1:10;
+            pract = pract+1;
+            
+            ppic_raw = imread(prac_imgs{pract}); %imread the image name
+            ppic_texture = Screen('MakeTexture',w,ppic_raw);
+            
+            DrawFormattedText(w,'+','center','center',COLORS.WHITE);
+            Screen('Flip',w);
+            WaitSecs(.5); %XXX: Jitter this.
+            
+            Screen('DrawTexture',w,ppic_texture,[],STIM.imgrect);
+            RT_start = Screen('Flip',w,[],1);
+            telap = GetSecs() - RT_start;
+            
+            correct = -999;
+            
+            while telap <= (STIM.trialdur);
+                telap = GetSecs() - RT_start;
+                [Down, ~, Code] = KbCheck();            %wait for key to be pressed
+                if (Down == 1 && any(find(Code) == KEY.rt))
+                    %                 FoodANT.data(tnum).rt = GetSecs() - RT_start;
+                    
+                    %If block 1 & Unhealthy OR block 2 & healthy....
+                    if (prac_block == 1 && pp_rand(pract,1) == 0) || (prac_block == 2 && pp_rand(pract,1) == 1);
+                        %This was a nogo trial; throw error X.
+                        Screen('DrawTexture',w,ppic_texture,[],STIM.imgrect);
+                        DrawFormattedText(w,'X','center','center',COLORS.RED);
+                        Screen('Flip',w);
+                        WaitSecs(.5);
+                        
+                        correct = 0;
+                        break
+                    else
+                        Screen('Flip',w)
+                        
+                        correct = 1;
+                        break
+                    end
+                end
+            end
+            
+            if correct == -999
+                %If no button was pressed...
+                
+                if (prac_block == 1 && pp_rand(pract,1) == 0) || (prac_block == 2 && pp_rand(pract,1) == 1);
+                    %this was a correct no go trial!
+                    Screen('Flip',w);
+                    
+                    %                 correct = 1;
+                else
+                    %You no-goed a go trial!
+                    Screen('DrawTexture',w,ppic_texture,[],STIM.imgrect);
+                    DrawFormattedText(w,'X','center','center',COLORS.RED);
+                    Screen('Flip',w);
+                    WaitSecs(.5);
+                    
+                    %                 correct = 0;
+                end
+            end
+            
+            %Wait 500 ms in darkness
+            Screen('Flip',w);
+            WaitSecs(.5);
+        end
+        
+        
+        Screen('TextSize',w,old);
+    end
+end
+
 
 %% Blocks & Trials of the Task
 DrawFormattedText(w,'The task is about to begin.\n\n\nPress any key to begin the task.','center','center',COLORS.WHITE,60,[],[],1.5);
@@ -262,11 +370,11 @@ for block = 1:STIM.blocks;
     %Load pics block by block.
     
     if ordercond(COND,block) == 1
-        go_word = 'HEALTHY';
+        go_word = 'FRUITS/VEGETABLES';
         nogo_word = 'UNHEALTHY';
     else
         go_word = 'UNHEALTHY';
-        nogo_word = 'HEALTHY';
+        nogo_word = 'FRUITS/VEGETABLES';
     end
     
     ibt = sprintf('Prepare for Round %d. \n\nIn this round, press the space bar when you see pictures of %s foods. \n\nIf you see %s foods do not press the button. \n\nPress any key when you are ready to begin.',block,go_word,nogo_word);
